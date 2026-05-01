@@ -83,11 +83,27 @@ class CharacterCardCore(Entity):
     description: str = Field(description="一句话简介与背景说明")
 
 
+class ChapterState(BaseModel):
+    """章节状态记录"""
+    volume_number: int = Field(description="卷号")
+    chapter_number: int = Field(description="章节号")
+    chapter_title: str = Field(description="章节标题")
+    state_summary: str = Field(description="该章节中角色的状态总结")
+    timestamp: str = Field(description="记录时间")
+
 class CharacterCard(CharacterCardCore):
     entity_type: EntityType = Field("character", description="实体类型标记")
     personality: str = Field(description="性格关键词")
     core_drive: str = Field(description="核心驱动力/目标")
     character_arc: str = Field(description="角色在全书中的弧光")
+    flaw: str = Field(description="致命缺陷/弱点")
+    contradiction: str = Field(description="性格矛盾/反差")
+    secret: str = Field(description="隐藏秘密")
+    speaking_style: str = Field(description="说话风格/口头禅")
+    recent_chapters: List[ChapterState] = Field(
+        default_factory=list,
+        description="最近3个章节的状态记录，按时间倒序排列",
+    )
     dynamic_info: Dict[DynamicInfoType, List[DynamicInfoItem]] = Field(
         default_factory=dict,
         description="动态信息字典，留空，系统会自动维护",

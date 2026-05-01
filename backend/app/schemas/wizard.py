@@ -47,6 +47,27 @@ class ParagraphOverview(BaseModel):
     """2: 根据一句话概述等信息扩充为一段话概述的请求模型"""
     overview_thinking: str = Field(description="从一句话概述到一段话大纲的创作思考过程。",examples=["示例输出，仅供学习思考方式，不要被具体内容影响：基于一句话概述，进一步思考故事的具体展开。从'穿越'标签出发，需要交代主角穿越后的身份转变和初始困境。'反派流'和'幕后流'决定了主角必须采取非传统的反派手段。'种田流'提示要详细描写魔族社会发展过程。'傲慢天赋'金手指则提供了主角解决问题的独特方式。整个故事需要展现出主角如何利用现代思维和智谋，在有限时间内完成魔族改造和人类世界的和平渗透。"])
     overview: str = Field(description="扩展后的小说大纲")
+
+class GoldenChapter(BaseModel):
+    """黄金三章的单章设计"""
+    chapter_number: int = Field(description="章节序号（1/2/3）")
+    title: str = Field(description="章节标题")
+    hook: str = Field(description="悬念钩子：首段抛出的致命问题或异常事件")
+    character_action: str = Field(description="人设立体：主角的关键动作或选择，凸显性格")
+    conflict: str = Field(description="冲突爆发：外部威胁+内部困境")
+    golden_finger_hint: str = Field(description="金手指预埋：显性或隐性的逆袭暗示")
+    scene_description: str = Field(description="场景描写")
+    plot_points: List[str] = Field(description="关键情节节点")
+    target_word_count: int = Field(default=3000, description="目标字数")
+
+class GoldenThreeChapters(BaseModel):
+    """黄金三章设计 - 决定小说生死的开局设计"""
+    volume_number: int = Field(description="所属卷号")
+    thinking: str = Field(description="黄金三章设计思考过程：如何运用四大必杀技")
+    chapter_1: GoldenChapter = Field(description="第一章：开局钩子，快速切入异常事件")
+    chapter_2: GoldenChapter = Field(description="第二章：身份困境，强化冲突与悬念")
+    chapter_3: GoldenChapter = Field(description="第三章：升级/逆袭启动，锁死读者期待")
+    summary: str = Field(description="三章整体总结：主线承诺与读者期待锁定")
     
 
 class SocialSystem(BaseModel):
@@ -161,7 +182,57 @@ class ChapterOutline(BaseModel):
         description="章节中出场的重要实体列表，只能从上下文提供的组织/角色/场景卡实体中选择，不得新增、自创；实体名称必须是纯名称（不得包含括号/备注）。注意,为了精简上下文，避免实体列表中出现该章节未出场的冗余实体",
     )
 
+
+class SceneBreakdown(BaseModel):
+    """场景分解"""
+    scene_number: int = Field(description="场景序号")
+    location: str = Field(description="场景地点")
+    description: str = Field(description="场景描述")
+    characters: List[str] = Field(description="该场景出场角色列表")
+    purpose: str = Field(description="该场景的作用/目的")
+
+
+class DialoguePoint(BaseModel):
+    """对话要点"""
+    speaker: str = Field(description="说话者")
+    content_summary: str = Field(description="对话内容要点")
+    purpose: str = Field(description="这段对话的目的/作用")
+
+
+class CharacterEmotion(BaseModel):
+    """人物情绪"""
+    character_name: str = Field(description="角色名称")
+    emotion_type: str = Field(description="情绪类型，如：愤怒、悲伤、喜悦、恐惧、焦虑、愧疚等")
+    intensity: int = Field(description="情绪强度，1-10")
+    trigger: str = Field(description="情绪触发事件")
+    resolution: Optional[str] = Field(description="情绪如何解决或转变")
+
+
+class ChapterDetailOutline(BaseModel):
+    """章节细纲 - 比章节大纲更详细的情节分解"""
+    volume_number: int = Field(description="卷号")
+    stage_number: int = Field(description="阶段号")
+    chapter_number: int = Field(description="章节序号")
+    title: str = Field(description="章节标题")
     
+    core_event: str = Field(description="本章核心事件")
+    scene_breakdown: List[SceneBreakdown] = Field(description="场景分解列表")
+    key_dialogues: List[DialoguePoint] = Field(description="关键对话要点")
+    character_emotions: Optional[List[CharacterEmotion]] = Field(description="本章人物情绪变化")
+    plot_twists: Optional[List[str]] = Field(description="情节转折/意外发展")
+    character_development: Optional[List[str]] = Field(description="角色成长/变化")
+    foreshadowing: Optional[List[str]] = Field(description="伏笔/铺垫")
+    entity_list: List[str] = Field(description="出场实体列表")
+    word_count_target: Optional[int] = Field(description="目标字数")
+
+    
+
+class StageEvent(BaseModel):
+    """阶段完整事件设计"""
+    inciting_incident: str = Field(description="事件起因：引发本阶段核心冲突的关键事件或触发点")
+    development: str = Field(description="事件发展：冲突逐步升级，主角面临的挑战和困难，情节如何推进")
+    climax: str = Field(description="事件高潮：冲突达到顶点，主角做出关键决策或进行决定性战斗")
+    resolution: str = Field(description="事件结尾：冲突解决方式，主角获得的成果或付出的代价，为下一阶段铺垫")
 
 class StageLine(BaseModel):
     """故事按阶段划分的信息"""
@@ -171,6 +242,7 @@ class StageLine(BaseModel):
     reference_chapter: Tuple[int, int] = Field(description="该部分剧情的起始和结束章节号,跨度通常为10~20章左右")
     analysis: Optional[str] = Field(description="以一个经验丰富的网文写手代入作者第一人称视角,'我'是如何思考设置这部分的剧情的,该部分剧情对于分卷的主线/辅线起到什么作用?该阶段剧情的爽点是什么？末尾是否设置钩子/悬念？")
     overview: Optional[str] = Field(description="这个阶段剧情内容具体概述，需要详略得当，涉及到的主要实体，如角色、场景/地图、组织等元素都应在这个概述中体现到。另外，若主角有了显著提升（如提升了主角多少实力或地位、增长了主角多少财富或资源之类的），则相关信息需要准确数据描述，不能省略")
+    core_event: StageEvent = Field(description="本阶段核心事件设计，包含起因、发展、高潮和结尾")
     chapter_outline_list:Optional[List[ChapterOutline]]=Field(description="根据reference_chapter、overview生成所需的章节大纲。注意章节大纲的标题不要包含”第x章这种前缀")
     entity_snapshot: Optional[List[str]] = Field(description="阶段末时，关键实体（角色为主）快照状态信息，包括等级/修为境界、财富、功法等准确信息，以便收束剧情，确保最后一个阶段时，剧情发展能够使得实体状态收束到该卷末的实体状态。")
     @model_validator(mode="after")

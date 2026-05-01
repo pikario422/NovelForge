@@ -1,5 +1,5 @@
 # 工作流：阶段大纲
-# 功能：阶段大纲保存时，提取章节大纲列表并批量创建章节大纲卡和章节正文卡
+# 功能：阶段大纲保存时，提取章节大纲列表并批量创建章节大纲卡、章节细纲卡和章节正文卡
 # 触发器：阶段大纲卡片保存时自动触发
 
 #@node(description="触发器：监听阶段大纲卡片保存")
@@ -37,6 +37,24 @@ outline_cards = Card.BatchUpsert(
 #</node>
 
 
+#@node(async=true, description="批量创建章节细纲卡（异步）")
+detail_cards = Card.BatchUpsert(
+    project_id=trigger.project_id,
+    parent_id=outline_cards.result,
+    card_type="章节细纲",
+    title_template="细纲：{item.title}",
+    content_template={
+      "volume_number": "{item.volume_number}",
+      "stage_number": "{item.stage_number}",
+      "chapter_number": "{item.chapter_number}",
+      "title": "{item.title}",
+      "entity_list": "{item.entity_list}"
+    },
+    items=validated_outlines.result
+  )
+#</node>
+
+
 #@node(async=true, description="批量创建章节正文卡（异步）")
 content_cards = Card.BatchUpsert(
     project_id=trigger.project_id,
@@ -56,7 +74,7 @@ content_cards = Card.BatchUpsert(
 
 
 #@node(description="等待异步任务完成")
-wait_result = Logic.Wait(tasks=[outline_cards, content_cards])
+wait_result = Logic.Wait(tasks=[outline_cards, detail_cards, content_cards])
 #</node>
 
 

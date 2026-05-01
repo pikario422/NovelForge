@@ -1,0 +1,125 @@
+# 工作流：角色卡自动更新
+# 功能：章节正文保存时，自动提取角色信息并更新/创建角色卡
+# 触发器：章节正文卡片保存时自动触发
+
+#@node(description="触发器：监听章节正文卡片保存")
+trigger = Trigger.CardSaved(card_type="章节正文")
+#</node>
+
+
+#@node(description="读取章节正文")
+chapter_content = Card.Read(card_id=trigger.card_id)
+#</node>
+
+
+#@node(description="获取章节信息（从父级章节大纲获取卷号、章节号等）")
+parent_info = Card.Read(card_id=chapter_content.parent_id)
+#</node>
+
+
+#@node(description="调用AI提取角色信息")
+extracted_chars = AI.Generate(
+    prompt="角色提取",
+    input={
+        "content": chapter_content.content.get("content", "")
+    }
+)
+#</node>
+
+
+#@node(description="遍历提取到的角色，更新或创建角色卡")
+updated_cards = Logic.ForEach(
+    items=extracted_chars.result.get("characters", []),
+    body=[
+        #@node(description="检查角色是否已存在")
+        existing_card = Card.Search(
+            project_id=trigger.project_id,
+            card_type="角色卡",
+            filters=[["content.name", "==", "{item.name}"]]
+        ),
+        #</node>
+        
+        #@node(description="构建角色卡内容")
+        char_content = Logic.Expression(
+            expression="""
+            {
+                'name': '{item.name}',
+                'entity_type': 'character',
+                'life_span': '长期',
+                'role_type': '{item.role_type}',
+                'personality': '{item.personality}',
+                'description': '{item.description}',
+                'born_scene': '',
+                'core_drive': '',
+                'character_arc': '',
+                'flaw': '',
+                'contradiction': '',
+                'secret': '',
+                'speaking_style': ''
+            }
+            """
+        ),
+        #</node>
+        
+        #@node(description="构建最近章节记录")
+        new_chapter_state = Logic.Expression(
+            expression="""
+            {
+                'volume_number': parent_info.content.get('volume_number', 1),
+                'chapter_number': parent_info.content.get('chapter_number', 1),
+                'chapter_title': parent_info.content.get('title', ''),
+                'state_summary': '{item.state_summary}',
+                'timestamp': '${{now}}'
+            }
+            """
+        ),
+        #</node>
+        
+        #@node(description="更新或创建角色卡")
+        result_card = Logic.Condition(
+            condition="len(existing_card.result) > 0",
+            if_true=[
+                #@node(description="更新现有角色卡")
+                updated = Card.Upsert(
+                    project_id=trigger.project_id,
+                    card_id=existing_card.result[0].id,
+                    card_type="角色卡",
+                    title="{item.name}",
+                    content=Logic.Expression(
+                        expression="""
+                        {
+                            **char_content.result,
+                            'recent_chapters': [new_chapter_state.result] + existing_card.result[0].content.get('recent_chapters', [])[:2]
+                        }
+                        """
+                    )
+                ),
+                #</node>
+            ],
+            if_false=[
+                #@node(description="创建新角色卡")
+                created = Card.Upsert(
+                    project_id=trigger.project_id,
+                    card_type="角色卡",
+                    title="{item.name}",
+                    content=Logic.Expression(
+                        expression="""
+                        {
+                            **char_content.result,
+                            'recent_chapters': [new_chapter_state.result]
+                        }
+                        """
+                    )
+                ),
+                #</node>
+            ]
+        ),
+        #</node>
+    ]
+)
+#</node>
+
+
+#@node(description="等待所有角色卡更新完成")
+wait_result = Logic.Wait(tasks=[updated_cards])
+#</node>

@@ -52,6 +52,22 @@ FIELD_TITLE_ZH_MAP: Dict[str, str] = {
     "stage_count": "阶段数量",
     "character_action_list": "角色行动列表",
     "entity_snapshot": "实体状态快照",
+    "core_event": "核心事件",
+    "inciting_incident": "事件起因",
+    "development": "事件发展",
+    "climax": "事件高潮",
+    "resolution": "事件结尾",
+    # 黄金三章字段
+    "golden_chapter": "黄金章节",
+    "hook": "悬念钩子",
+    "character_action": "人设立体",
+    "conflict": "冲突爆发",
+    "golden_finger_hint": "金手指预埋",
+    "scene_description": "场景描写",
+    "plot_points": "情节节点",
+    "target_word_count": "目标字数",
+    "thinking": "设计思考",
+    "summary": "三章总结",
     "stage_number": "阶段号",
     "chapter_number": "章节号",
     "entity_list": "实体列表",
@@ -66,9 +82,34 @@ FIELD_TITLE_ZH_MAP: Dict[str, str] = {
     "personality": "性格",
     "core_drive": "核心驱动力",
     "character_arc": "角色弧光",
+    "flaw": "致命缺陷",
+    "contradiction": "性格矛盾",
+    "secret": "隐藏秘密",
+    "speaking_style": "说话风格",
+    "recent_chapters": "最近章节记录",
     "influence": "影响力",
     "relationship": "关系",
     "dynamic_info": "动态信息",
+    # 章节细纲字段
+    "core_event": "核心事件",
+    "scene_breakdown": "场景分解",
+    "scene_number": "场景序号",
+    "location": "地点",
+    "characters": "角色列表",
+    "purpose": "作用",
+    "key_dialogues": "关键对话",
+    "speaker": "说话者",
+    "content_summary": "内容要点",
+    "character_emotions": "人物情绪",
+    "character_name": "角色名称",
+    "emotion_type": "情绪类型",
+    "intensity": "情绪强度",
+    "trigger": "触发事件",
+    "resolution": "情绪转变",
+    "plot_twists": "情节转折",
+    "character_development": "角色成长",
+    "foreshadowing": "伏笔铺垫",
+    "word_count_target": "目标字数",
 }
 
 _CJK_RE = re.compile(r"[\u4e00-\u9fff]")
@@ -229,6 +270,23 @@ def create_default_card_types(session: Session) -> None:
             "之前的章节大纲: @type:章节大纲[sibling].{content.chapter_number,content.overview}\n"
             "请开始创作第 @self.content.chapter_number 章的大纲，保证连贯性"
         )},
+        "黄金三章": {"is_singleton": True, "default_ai_context_template": (
+            "作品标签: @作品标签.content\n"
+            "金手指/特殊能力: @金手指.content.special_abilities\n"
+            "故事大纲: @故事大纲.content.overview\n"
+            "世界观设定: @世界观设定.content.world_view\n"
+            "主角信息:@type:角色卡[index=filter:content.role_type='主角'].{content.name,content.description,content.personality,content.core_drive}\n"
+            "请根据黄金三章法则，设计小说的前三章内容，包含悬念钩子、人设立体、冲突爆发和金手指预埋四大必杀技。"
+        )},
+        "章节细纲": {"default_ai_context_template": (
+            "世界观设定: @世界观设定.content\n"
+            "当前阶段故事概述: @parent.content.overview\n"
+            "当前章节大纲: @parent.content.overview\n"
+            "角色卡信息:@type:角色卡[index=filter:content.name in $self.content.entity_list].{content.name,content.role_type,content.description,content.personality,content.core_drive}\n"
+            "场景卡信息:@type:场景卡[index=filter:content.name in $self.content.entity_list].{content.name,content.description}\n"
+            "组织/势力设定:@type:组织卡[index=filter:content.name in $self.content.entity_list].{content.name,content.description,content.influence}\n"
+            "请为第 @self.content.chapter_number 章 '@self.content.title' 生成详细的章节细纲，包括场景分解、关键对话、情节转折等。"
+        )},
         "章节正文": {"editor_component": "CodeMirrorEditor", "is_ai_enabled": False, "default_ai_context_template": (
             "世界观设定: @世界观设定.content\n"
             "组织/势力设定:@type:组织卡[index=filter:content.name in $self.content.entity_list].{content.name,content.description,content.influence,content.relationship,content.dynamic_state}\n"
@@ -239,6 +297,7 @@ def create_default_card_types(session: Session) -> None:
             "概念卡:@type:概念卡[index=filter:content.name in $self.content.entity_list].{content.name,content.category,content.description,content.rule_definition,content.mastery_hint}\n"
             "最近的章节原文，确保能够衔接剧情:@type:章节正文[previous:1].{content.title,content.chapter_number,content.content}\n"
             "参与者实体列表，确保生成内容只会出场这些实体:@self.content.entity_list\n"
+            "章节细纲:@type:章节细纲[index=filter:content.volume_number = $self.content.volume_number&&content.stage_number= $self.content.stage_number&&content.chapter_number= $self.content.chapter_number].{content.core_event,content.scene_breakdown,content.key_dialogues}\n"
             "请根据 @self.content.chapter_number： @self.content.title 的大纲@type:章节大纲[index=filter:content.volume_number = $self.content.volume_number&&content.stage_number= $self.content.stage_number&&content.chapter_number= $self.content.chapter_number].{content.overview} 来创作章节正文内容，可以适当发散、设计与大纲内容不冲突的剧情来进行扩充。你无需在正文中重复标题：@self.content.title \n"
             "注意，写作时必须保证结尾剧情与下一章的剧情大纲不会冲突，且不会提前涉及下一章剧情(如果存在的话):@type:章节大纲[index=filter:content.volume_number = $self.content.volume_number && content.chapter_number = $self.content.chapter_number+1].{content.title,content.overview}\n"
             "写作时请结合写作指南要求:@type:写作指南[index=filter:content.volume_number = $self.content.volume_number].{content.content}\n"
@@ -268,6 +327,7 @@ def create_default_card_types(session: Session) -> None:
         "写作指南": {"prompt_name": "写作指南", "temperature": 0.6, "max_tokens": 8192, "timeout": 120},
         "阶段大纲": {"prompt_name": "阶段大纲", "temperature": 0.7, "max_tokens": 8192, "timeout": 120},
         "章节大纲": {"prompt_name": "章节大纲", "temperature": 0.7, "max_tokens": 8192, "timeout": 120},
+        "章节细纲": {"prompt_name": "章节细纲", "temperature": 0.7, "max_tokens": 8192, "timeout": 120},
         "章节正文": {"prompt_name": "内容生成", "temperature": 0.7, "max_tokens": 8192, "timeout": 120},
         "内容审核卡片": None,
         "角色卡": {"prompt_name": "角色动态信息提取", "temperature": 0.6, "max_tokens": 4096, "timeout": 120},
@@ -290,6 +350,7 @@ def create_default_card_types(session: Session) -> None:
         "写作指南": "WritingGuide",
         "阶段大纲": "StageLine",
         "章节大纲": "ChapterOutline",
+        "章节细纲": "ChapterDetailOutline",
         "章节正文": "Chapter",
         "内容审核卡片": "ReviewResultCardContent",
         "角色卡": "CharacterCard",

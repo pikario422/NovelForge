@@ -1,0 +1,35 @@
+# 工作流：章节细纲生成
+# 功能：章节大纲保存时，自动生成章节细纲卡
+# 触发器：章节大纲卡片保存时自动触发
+
+#@node(description="触发器：监听章节大纲卡片保存")
+trigger = Trigger.CardSaved(card_type="章节大纲")
+#</node>
+
+
+#@node(description="读取章节大纲")
+chapter_outline = Card.Read(card_id=trigger.card_id)
+#</node>
+
+
+#@node(description="构建章节细纲内容")
+detail_content = Logic.Expression(
+    expression="{**chapter_outline.content, 'title': chapter_outline.content.get('title') or '', 'entity_list': chapter_outline.content.get('entity_list') or []}"
+  )
+#</node>
+
+
+#@node(async=true, description="创建章节细纲卡（异步）")
+detail_card = Card.Upsert(
+    project_id=trigger.project_id,
+    parent_id=trigger.card_id,
+    card_type="章节细纲",
+    title=f"细纲：{chapter_outline.content.get('title', '未命名章节')}",
+    content=detail_content.result
+  )
+#</node>
+
+
+#@node(description="等待异步任务完成")
+wait_result = Logic.Wait(tasks=[detail_card])
+#</node>

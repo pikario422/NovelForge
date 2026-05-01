@@ -6,11 +6,12 @@ from typing import Dict, Any
 from app.schemas.wizard import (
     Text,
 	WorldBuilding, Blueprint,
-	VolumeOutline, ChapterOutline,
+	VolumeOutline, ChapterOutline, ChapterDetailOutline,
 	SpecialAbilityResponse, OneSentence, ParagraphOverview,
 	CharacterCard, SceneCard, StoryLine, StageLine, 
 	Tags, WorldviewTemplate, Chapter,
- WritingGuide, ReviewResultCardContent
+ WritingGuide, ReviewResultCardContent,
+ GoldenThreeChapters, GoldenChapter
 )
 from app.schemas.entity import ConceptCard, ItemCard, OrganizationCard
 from app.schemas.workflow_models import BookStageChunkPlan, BookStageFinalPlan
@@ -30,6 +31,7 @@ RESPONSE_MODEL_MAP: Dict[str, Any] = {
  	'WritingGuide': WritingGuide,
     'ReviewResultCardContent': ReviewResultCardContent,
 	'ChapterOutline': ChapterOutline,
+	'ChapterDetailOutline': ChapterDetailOutline,
 	'Chapter': Chapter,
 	# 基础schema，自动包含在OpenAPI中
 	'CharacterCard': CharacterCard,
@@ -40,6 +42,8 @@ RESPONSE_MODEL_MAP: Dict[str, Any] = {
 	# 显式导出嵌套类型，便于前端字段树解析
 	'StageLine': StageLine,
 	'StoryLine': StoryLine,
+	'GoldenThreeChapters': GoldenThreeChapters,
+	'GoldenChapter': GoldenChapter,
 	# 工作流专用结构模型
 	'BookStageChunkPlan': BookStageChunkPlan,
 	'BookStageFinalPlan': BookStageFinalPlan,
