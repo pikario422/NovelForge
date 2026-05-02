@@ -1,6 +1,6 @@
 # 工作流：阶段大纲
 # 功能：阶段大纲保存时，提取章节大纲列表并批量创建章节大纲卡、章节细纲卡和章节正文卡
-# 触发器：阶段大纲卡片保存时自动触发
+# 黄金三章设计：每个阶段的第1-3章融入特殊设计思路
 
 #@node(description="触发器：监听阶段大纲卡片保存")
 trigger = Trigger.CardSaved(card_type="阶段大纲")
@@ -12,53 +12,78 @@ stage = Card.Read(card_id=trigger.card_id)
 #</node>
 
 
-#@node(description="提取并增强章节大纲列表")
-enriched_outlines = Logic.Expression(
-    expression="[{**outline, 'title': (str(outline.get('title') or '') if str(outline.get('title') or '').startswith('第' + str(outline.get('chapter_number')) + '章 ') else ('第' + str(outline.get('chapter_number')) + '章 ' + str(outline.get('title') or ''))), 'entity_list': (outline.get('entity_list') or []), 'volume_number': stage.content.volume_number, 'stage_number': stage.content.stage_number} for outline in stage.content.chapter_outline_list or []]"
+#@node(description="提取章节大纲列表")
+chapter_list = Logic.Expression(
+    expression="stage.content.get('chapter_outline_list', [])"
   )
 #</node>
 
 
-#@node(description="校验章节号是否完整连续覆盖范围")
-validated_outlines = Logic.Expression(
-    expression="enriched_outlines.result if (stage.content.reference_chapter and len(stage.content.reference_chapter) == 2 and [int(item.get('chapter_number', -1)) for item in enriched_outlines.result] == list(range(int(stage.content.reference_chapter[0]), int(stage.content.reference_chapter[1]) + 1))) else []"
+#@node(description="准备大纲卡数据（包含黄金三章设计）")
+outline_items = Logic.Expression(
+    expression="[{" + "'chapter_number': item.get('chapter_number', 0), 'title': f\"第{item.get('chapter_number', 0)}章 {item.get('title', '').strip()}\", 'volume_number': stage.content.get('volume_number', 0), 'stage_number': stage.content.get('stage_number', 0), 'overview': item.get('overview', ''), 'entity_list': item.get('entity_list', []), 'golden_chapter': i+1 if i < 3 else None, 'golden_type': ['钩子', '展开', '冲突'][i] if i < 3 else None" + "} for i, item in enumerate(chapter_list.result)]"
   )
 #</node>
 
 
-#@node(async=true, description="批量创建章节大纲卡（异步）")
+#@node(description="批量创建章节大纲卡")
 outline_cards = Card.BatchUpsert(
     project_id=trigger.project_id,
     parent_id=trigger.card_id,
     card_type="章节大纲",
     title_template="{item.title}",
-    items=validated_outlines.result
-  )
-#</node>
-
-
-#@node(async=true, description="批量创建章节细纲卡（异步）")
-detail_cards = Card.BatchUpsert(
-    project_id=trigger.project_id,
-    parent_id=outline_cards.result,
-    card_type="章节细纲",
-    title_template="细纲：{item.title}",
     content_template={
       "volume_number": "{item.volume_number}",
       "stage_number": "{item.stage_number}",
       "chapter_number": "{item.chapter_number}",
       "title": "{item.title}",
-      "entity_list": "{item.entity_list}"
+      "overview": "{item.overview}",
+      "entity_list": "{item.entity_list}",
+      "golden_chapter": "{item.golden_chapter}",
+      "golden_type": "{item.golden_type}"
     },
-    items=validated_outlines.result
+    items=outline_items.result
   )
 #</node>
 
 
-#@node(async=true, description="批量创建章节正文卡（异步）")
+#@node(description="准备细纲卡数据（包含黄金三章设计）")
+detail_items = Logic.Expression(
+    expression="[{" + "'chapter_number': chapter_list.result[i].get('chapter_number', 0), 'title': f\"细纲：第{chapter_list.result[i].get('chapter_number', 0)}章 {chapter_list.result[i].get('title', '').strip()}\", 'volume_number': stage.content.get('volume_number', 0), 'stage_number': stage.content.get('stage_number', 0), 'entity_list': chapter_list.result[i].get('entity_list', []), 'parent_id': outline_cards.cards[i].get('id'), 'golden_chapter': i+1 if i < 3 else None, 'golden_type': ['钩子', '展开', '冲突'][i] if i < 3 else None" + "} for i in range(len(chapter_list.result))]"
+  )
+#</node>
+
+
+#@node(description="批量创建章节细纲卡")
+detail_cards = Card.BatchUpsert(
+    project_id=trigger.project_id,
+    card_type="章节细纲",
+    title_template="{item.title}",
+    content_template={
+      "volume_number": "{item.volume_number}",
+      "stage_number": "{item.stage_number}",
+      "chapter_number": "{item.chapter_number}",
+      "title": "{item.title}",
+      "entity_list": "{item.entity_list}",
+      "golden_chapter": "{item.golden_chapter}",
+      "golden_type": "{item.golden_type}"
+    },
+    items=detail_items.result,
+    parent_id="{item.parent_id}"
+  )
+#</node>
+
+
+#@node(description="准备正文卡数据")
+content_items = Logic.Expression(
+    expression="[{" + "'chapter_number': chapter_list.result[i].get('chapter_number', 0), 'title': f\"第{chapter_list.result[i].get('chapter_number', 0)}章 {chapter_list.result[i].get('title', '').strip()}\", 'volume_number': stage.content.get('volume_number', 0), 'stage_number': stage.content.get('stage_number', 0), 'entity_list': chapter_list.result[i].get('entity_list', []), 'parent_id': detail_cards.cards[i].get('id')" + "} for i in range(len(chapter_list.result))]"
+  )
+#</node>
+
+
+#@node(description="批量创建章节正文卡")
 content_cards = Card.BatchUpsert(
     project_id=trigger.project_id,
-    parent_id=trigger.card_id,
     card_type="章节正文",
     title_template="{item.title}",
     content_template={
@@ -68,13 +93,9 @@ content_cards = Card.BatchUpsert(
       "title": "{item.title}",
       "entity_list": "{item.entity_list}"
     },
-    items=validated_outlines.result
+    items=content_items.result,
+    parent_id="{item.parent_id}"
   )
-#</node>
-
-
-#@node(description="等待异步任务完成")
-wait_result = Logic.Wait(tasks=[outline_cards, detail_cards, content_cards])
 #</node>
 
 

@@ -1,25 +1,26 @@
-# 工作流：章节细纲生成
+# 工作流：章节细纲生成（已禁用）
 # 功能：章节大纲保存时，自动生成章节细纲卡
 # 触发器：章节大纲卡片保存时自动触发
+# 注意：此工作流已禁用，由阶段大纲工作流统一处理
 
-#@node(description="触发器：监听章节大纲卡片保存")
+#@node(disabled=true, description="触发器：监听章节大纲卡片保存")
 trigger = Trigger.CardSaved(card_type="章节大纲")
 #</node>
 
 
-#@node(description="读取章节大纲")
+#@node(disabled=true, description="读取章节大纲")
 chapter_outline = Card.Read(card_id=trigger.card_id)
 #</node>
 
 
-#@node(description="构建章节细纲内容")
+#@node(disabled=true, description="构建章节细纲内容")
 detail_content = Logic.Expression(
     expression="{**chapter_outline.content, 'title': chapter_outline.content.get('title') or '', 'entity_list': chapter_outline.content.get('entity_list') or []}"
   )
 #</node>
 
 
-#@node(async=true, description="创建章节细纲卡（异步）")
+#@node(async=true, disabled=true, description="创建章节细纲卡（异步）")
 detail_card = Card.Upsert(
     project_id=trigger.project_id,
     parent_id=trigger.card_id,
@@ -30,6 +31,6 @@ detail_card = Card.Upsert(
 #</node>
 
 
-#@node(description="等待异步任务完成")
+#@node(disabled=true, description="等待异步任务完成")
 wait_result = Logic.Wait(tasks=[detail_card])
 #</node>
