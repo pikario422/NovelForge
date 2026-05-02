@@ -280,25 +280,24 @@ def create_default_card_types(session: Session) -> None:
         )},
         "章节细纲": {"default_ai_context_template": (
             "世界观设定: @世界观设定.content\n"
-            "当前阶段故事概述: @parent.content.overview\n"
-            "当前章节大纲: @parent.content.overview\n"
+            "章节大纲: @parent.content.overview\n"
             "角色卡信息:@type:角色卡[index=filter:content.name in $self.content.entity_list].{content.name,content.role_type,content.description,content.personality,content.core_drive}\n"
             "场景卡信息:@type:场景卡[index=filter:content.name in $self.content.entity_list].{content.name,content.description}\n"
             "组织/势力设定:@type:组织卡[index=filter:content.name in $self.content.entity_list].{content.name,content.description,content.influence}\n"
-            "请为第 @self.content.chapter_number 章 '@self.content.title' 生成详细的章节细纲，包括场景分解、关键对话、情节转折等。"
+            "请根据章节大纲 '@parent.content.overview'，为第 @self.content.chapter_number 章 '@self.content.title' 生成详细的章节细纲，包括场景分解、关键对话、情节转折、人物情绪变化等。"
         )},
         "章节正文": {"editor_component": "CodeMirrorEditor", "is_ai_enabled": False, "default_ai_context_template": (
             "世界观设定: @世界观设定.content\n"
             "组织/势力设定:@type:组织卡[index=filter:content.name in $self.content.entity_list].{content.name,content.description,content.influence,content.relationship,content.dynamic_state}\n"
             "场景卡:@type:场景卡[index=filter:content.name in $self.content.entity_list].{content.name,content.description,content.dynamic_state}\n"
-            "当前故事阶段大纲: @parent.content.overview\n"
             "角色卡:@type:角色卡[index=filter:content.name in $self.content.entity_list].{content.name,content.role_type,content.born_scene,content.description,content.personality,content.core_drive,content.character_arc,content.dynamic_info}\n"
             "物品卡:@type:物品卡[index=filter:content.name in $self.content.entity_list].{content.name,content.category,content.description,content.current_state,content.power_or_effect}\n"
             "概念卡:@type:概念卡[index=filter:content.name in $self.content.entity_list].{content.name,content.category,content.description,content.rule_definition,content.mastery_hint}\n"
             "最近的章节原文，确保能够衔接剧情:@type:章节正文[previous:1].{content.title,content.chapter_number,content.content}\n"
             "参与者实体列表，确保生成内容只会出场这些实体:@self.content.entity_list\n"
-            "章节细纲:@type:章节细纲[index=filter:content.volume_number = $self.content.volume_number&&content.stage_number= $self.content.stage_number&&content.chapter_number= $self.content.chapter_number].{content.core_event,content.scene_breakdown,content.key_dialogues}\n"
-            "请根据 @self.content.chapter_number： @self.content.title 的大纲@type:章节大纲[index=filter:content.volume_number = $self.content.volume_number&&content.stage_number= $self.content.stage_number&&content.chapter_number= $self.content.chapter_number].{content.overview} 来创作章节正文内容，可以适当发散、设计与大纲内容不冲突的剧情来进行扩充。你无需在正文中重复标题：@self.content.title \n"
+            "章节细纲: @parent.content\n"
+            "章节大纲:@type:章节大纲[index=filter:content.volume_number = $self.content.volume_number&&content.stage_number= $self.content.stage_number&&content.chapter_number= $self.content.chapter_number].{content.overview}\n"
+            "请根据章节细纲详细扩写第 @self.content.chapter_number 章 '@self.content.title' 的正文内容，严格按照细纲中的场景分解、关键对话、人物情绪等进行创作，保持情节连贯。你无需在正文中重复标题：@self.content.title \n"
             "注意，写作时必须保证结尾剧情与下一章的剧情大纲不会冲突，且不会提前涉及下一章剧情(如果存在的话):@type:章节大纲[index=filter:content.volume_number = $self.content.volume_number && content.chapter_number = $self.content.chapter_number+1].{content.title,content.overview}\n"
             "写作时请结合写作指南要求:@type:写作指南[index=filter:content.volume_number = $self.content.volume_number].{content.content}\n"
             ), "default_ai_context_template_review": chapter_review_context_template},
